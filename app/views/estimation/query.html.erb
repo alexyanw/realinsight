@@ -1,0 +1,133 @@
+<div class='row'>
+  <div class="col-md-6">
+    <div id='estimation-trend' class="panel panel-success">
+      <div class="panel-heading">Estimation</div>
+      <div class='panel-body chart-container'>
+        <div id='chart-estimation' class='chart'> </div>
+        <fieldset>
+          <legend>Trend comparison: </legend>
+          <label for="checkbox-zip">Zip median sold_price trend</label>
+          <input type="checkbox" name="checkbox-zip" id="checkbox-zip">
+          <label for="checkbox-county">County median sold_price trend</label>
+          <input type="checkbox" name="checkbox-county" id="checkbox-county">
+          <label for="checkbox-confidence">95% confidence interval</label>
+          <input type="checkbox" name="checkbox-confidence" id="checkbox-confidence">
+        </fieldset>
+      </div>
+    </div>
+  </div>
+  <div class='col-md-6'>
+    <div id='property-info' class="panel panel-success ">
+      <div class="panel-heading">Property Attributes</div>
+      <div class="panel-body">
+        <a href='' id='address'></a>
+        <div id='brief-fields' class='row'>
+          <ul id='property-brief-1' class="field-group col-sm-5"> </ul>
+          <ul class="col-sm-2"> </ul>
+          <ul id='property-brief-2' class="field-group col-sm-5"> </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<% content_for :custom_css do %>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.18/c3.min.css" type="text/css">
+  <%= stylesheet_link_tag('estimation') %>
+  <%= stylesheet_link_tag('property') %>
+<% end %>
+
+<% content_for :custom_script do %>
+  <script src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.18/c3.min.js"></script>
+  <%= javascript_include_tag('estimation') %>
+  <%= javascript_include_tag('viz_utils') %>
+<script>
+var g_debug;
+function update_property_brief(property) {
+  $('#property-brief-1').empty();
+  $('#property-brief-2').empty();
+  if(typeof property == 'undefined') {
+    $('#address').text('');
+    transDataView.setItems([]);
+    return;
+  }
+  var fields = ['pin', 'year_built', 'land_use_subcode', 'sqft', 'num_bed', 'num_bath', 'pool', 'view', 'eval_land', 'eval_imps', 'lon', 'lat'];
+  for (var i in fields) {
+    var field = fields[i];
+    var li = "<li><span class='title'>" + field + "</span><span class='value'>" + property[field] + "</span></li>";
+    if(i < fields.length /2) {
+      $('#property-brief-1').append(li);
+    }else{
+      $('#property-brief-2').append(li);
+    }
+  }
+  var zillow_url = 'https://www.zillow.com/homes/' + property.new_address + '_rb';
+  $('#address').text(property.new_address).attr('href', zillow_url);
+}
+
+$('input:checkbox').bind('change', function(){
+  var checkbox = $(this).context.name;
+  if($(this).is(':checked')){
+    if(checkbox == 'checkbox-zip') {
+      g_chart.load({
+        json: trend_zip,
+        keys: { x: 'date', value: ['zip_median_price'] },
+      });
+    }else if(checkbox == 'checkbox-county') {
+      g_chart.load({
+        json: trend_county,
+        keys: { x: 'date', value: ['county_median_price'] },
+      });
+    }else if(checkbox == 'checkbox-confidence') {
+      g_chart.load({
+        json: trend_est_upper,
+        keys: { x: 'date', value: ['est_upper'] },
+      });
+      g_chart.load({
+        json: trend_est_lower,
+        keys: { x: 'date', value: ['est_lower'] },
+      });
+    }
+  }else{
+    if(checkbox == 'checkbox-zip') {
+      g_chart.unload('zip_median_price');
+    }else if(checkbox == 'checkbox-county') {
+      g_chart.unload('county_median_price');
+    }else if(checkbox == 'checkbox-confidence') {
+      g_chart.unload('est_upper');
+      g_chart.unload('est_lower');
+    }
+  }
+});
+
+$(function(){
+  // default query
+  var req_data = undefined;
+  var transactions = <%= @transactions.to_json.html_safe%>;
+  var estimation = <%= @estimates.to_json.html_safe%>;
+  var trends = {};
+  trends['county'] = <%= @county.to_json.html_safe%>;
+  trends['zip'] = <%= @zip.to_json.html_safe%>;
+  trends['confidence_interval'] = <%= @res_std.to_json.html_safe%>;
+  g_chart = update_chart(estimation, transactions);
+  var property = <%= @property.to_json.html_safe%>;
+  update_property_brief(property);
+
+  trend_zip = trends.zip.map(function(d) {
+    return {date: new Date(d.year, d.month), zip_median_price: d.median_sold_price};
+  });
+  trend_county = trends.county.map(function(d) {
+    return {date: new Date(d.year, d.month), county_median_price: d.median_sold_price};
+  });
+  trend_est_upper = estimation.map(function(d, i) {
+    return {date: d.date, est_upper: d.estimation + trends['confidence_interval'][i]['std']};
+  });
+  trend_est_lower = estimation.map(function(d, i) {
+    return {date: d.date, est_lower: d.estimation - trends['confidence_interval'][i]['std']};
+  });
+
+  $( "input:checkbox" ).checkboxradio();
+});
+</script>
+<% end %>

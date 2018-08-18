@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+
+  <head>
+    <title>Capstone San Diego County Realestate Analysis</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css">
+    <link href="http://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <%= stylesheet_link_tag('application') %>
+
+    <%= yield(:custom_css) if content_for?(:custom_css) %>
+
+		<%= javascript_include_tag('application') %>
+
+
+    <script src="//maps.google.com/maps/api/js?v=3&key=AIzaSyCat5L7Jvs62BXVdezyIzW9FuJNGXVRPak"></script>
+    <!--
+    <script src="//maps.google.com/maps/api/js?key=AIzaSyCat5L7Jvs62BXVdezyIzW9FuJNGXVRPak&callback=initialize_gmap"></script>
+    -->
+    <script src="//cdn.rawgit.com/mahnunchik/markerclustererplus/master/dist/markerclusterer.min.js"></script>
+    <script src='//cdn.rawgit.com/printercu/google-maps-utility-library-v3-read-only/master/infobox/src/infobox_packed.js' type='text/javascript'></script> <!-- only if you need custom infoboxes -->
+  </head>
+
+  <body class='index-page'>
+    <%= render(:partial => 'layouts/nav') %>
+    <div id='main-container' class="container-fluid">
+        <div class='col-sm-12 col-md-8 left-container'>
+          <%if not @map_control['sidebar'].nil?%>
+						<div id="sidebar" class="sidebar collapsed">
+            <%= render(:partial => @map_control['sidebar'])%>
+						</div>
+          <%end%>
+          <%if not @map_control['sidebar'].nil?%>
+          <div id='map-legend' class='leaflet-bottom leaflet-left'>
+          </div>
+          <% end%>
+          <div id="map" class="sidebar-map"> </div>
+        </div>
+
+        <div class='hidden-sm col-md-4 right-container'>
+          <%=yield%>
+        </div>
+      </div>
+    </div>
+  <script type='text/javascript'>
+  </script>
+  </body>
+
+<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+
+<%= javascript_include_tag('gmap.js') %>
+<script>
+
+  var tab = '<%=@tab%>';
+  $('#navbar-links li > a').each(function(i) {
+    if($(this).text() == tab) {
+      $(this).parent().addClass('active');
+    }
+  });
+
+
+handler = Gmaps.build('Google');
+
+handler.buildMap({ internal: {id: 'map'} }, function(){
+  // be aware chrome >= 50 requires https for geolocation to work
+  if(navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(function(position){
+      var marker = handler.addMarker({
+        lat: position.coords.latitude,
+        lng: position.coords.longitude
+      });
+      handler.map.centerOn(marker);
+    });
+  }
+
+  markers = handler.addMarkers(schools);
+  /*
+  handler.bounds.extendWith(markers);
+  handler.fitMapToBounds();
+  */
+});
+
+  schools = <%= raw @hash.to_json %>;
+
+</script>
+
+<%= yield(:custom_script) if content_for?(:custom_script) %>
+
+</html>

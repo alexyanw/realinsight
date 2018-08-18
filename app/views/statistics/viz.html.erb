@@ -1,0 +1,124 @@
+<h4>
+  Trend of market statistics <span class='zip-title' style="font-weight: 600;"><%=@zip || 'county'%></span>
+</h4>
+
+<% (0..2).each do |i|%>
+  <div class="<%=i%> chart-container panel panel-card">
+    <div class="panel-heading">
+      <fieldset class='chart-control'>
+        <select name='<%="select_chart#{i}"%>' id='<%="select_chart#{i}"%>'>
+        </select>
+      </fieldset>
+    </div>
+    <div class='chart-container panel-body'>
+      <div id='chart_<%=i%>' class='chart'> </div>
+    </div>
+  </div>
+<% end %>
+
+<% content_for :custom_css do %>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.18/c3.min.css" type="text/css">
+  <%= stylesheet_link_tag('/assets/leaflet-sidebar-v2/gmaps-sidebar.min.css') %>
+  <%= stylesheet_link_tag('statistics') %>
+<% end %>
+
+<% content_for :custom_script do %>
+  <script src="https://d3js.org/d3.v3.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.18/c3.min.js"></script>
+  <%= javascript_include_tag('/assets/leaflet-sidebar-v2/jquery-sidebar.min.js') %>
+  <%= javascript_include_tag('viz_utils') %>
+  <%= javascript_include_tag('viz') %>
+  <%= javascript_include_tag('timeseries') %>
+<script>
+
+function initMapCustom(pos) {
+  g_infoControl = new MapControl(g_map, google.maps.ControlPosition.RIGHT_TOP, 'map-info-control');
+  updateInfoControl();
+
+  g_legendControl = new MapControl(g_map, google.maps.ControlPosition.LEFT_BOTTOM, 'map-legend-control', 'legend');
+
+  layer_zips = new google.maps.Data({map: g_map});
+  layer_zips.setStyle(function(feature){
+    var color = feature.getProperty('color');
+    return {
+      fillColor: color,
+      fillOpacity: 0.8,
+      strokeWeight: 1,
+      strokeColor: 'red',
+      strokeOpacity: 0.5,
+    }
+  });
+  g_choroplethCircles = {};
+  g_selected_zips = new Set([]);
+
+  var columns = ['ZIP','PONAME','latitude','longitude','geometry'];
+  var query = 'SELECT ' + columns.join(',') + ' FROM ' + FT_ZIP + " WHERE STATE = 'CA'";
+  queryFusionTable(layer_zips, query, columns, 'ZIP', loadChoroplethCircles);
+
+  <%if @zip %>
+    var zipcode = '<%=@zip%>';
+  <%else%>
+    geoscope = geoDecode(pos, function(location){
+      var county = location.administrative_area_level_2;
+      var state = location.administrative_area_level_1;
+      county = county.replace(' County', '');
+      query_county_zips(county);
+    });
+  <%end%>
+
+}
+
+var sidebar = $('#sidebar').sidebar();
+
+var choropleth_attrs = {
+  //background: ['median_sqft_price'],
+  background: ['sqft_value'],
+  circle_size: '',
+  circle_color: '',
+};
+
+function onChoroplethChange() {
+  var year = slider_year.slider('value');
+
+  choropleth_attrs = {background:[], circle_size:'', circle_color:''};
+  if(select_choropleth[0].val()) {
+    choropleth_attrs.background.push(select_choropleth[0].val());
+  }
+  if(select_choropleth[1].val()) {
+    choropleth_attrs.background.push(select_choropleth[1].val());
+  }
+  choropleth_attrs.circle_size = select_choropleth[2].val();
+  choropleth_attrs.circle_color = select_choropleth[3].val();
+
+  update_choropleth(year);
+}
+
+var select_choropleth = [];
+for(var i=0;i<4;i++) {
+  var select_id = '#choropleth_attribute' + i.toString();
+  select_choropleth[i] = $(select_id).selectmenu({
+    change: function( event, data ) {
+      onChoroplethChange();
+    }
+  });
+}
+
+var slider_year = $("#slider-year").slider({
+  value:2017,
+  min: 1983,
+  max: 2017,
+  step: 1,
+  slide: function( event, ui ) {
+    year = ui.value;
+    $('#year').text(year);
+    update_choropleth(year);
+  }
+});
+
+$(function(){
+  init_charts();
+  query_zip_cluster();
+});
+
+</script>
+<% end %>

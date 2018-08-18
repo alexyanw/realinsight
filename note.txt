@@ -1,0 +1,1 @@
+1. all models should have id as primary key

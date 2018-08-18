@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+
+  <head>
+    <title>Capstone San Diego County Realestate Analysis</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <%= stylesheet_link_tag('map') %>
+    <%= stylesheet_link_tag('common.css') %>
+
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" type="text/css" media="all" />
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css">
+    <link href="http://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.3.1/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.2.0/MarkerCluster.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.2.0/MarkerCluster.Default.css"/>
+    <link rel="stylesheet" href="/assets/leaflet_easy-button/easy-button.css">
+    <%= stylesheet_link_tag('map.css') %>
+    <%= yield(:custom_css) if content_for?(:custom_css) %>
+
+    <script src="https://code.jquery.com/jquery-1.12.1.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.0/jquery-ui.min.js" type="text/javascript"></script>
+
+  </head>
+
+  <body class='index-page'>
+    <%= render(:partial => 'layouts/nav') %>
+    <div id='main-container' class="container-fluid">
+        <div class='col-sm-12 col-md-8 left-container'>
+          <div id="sidebar" class="sidebar collapsed">
+          <%if not @map_control['sidebar'].nil?%>
+            <%= render(:partial => @map_control['sidebar'])%>
+          <%end%>
+          </div>
+          <%if not @map_control['sidebar'].nil?%>
+          <div id='map-legend' class='leaflet-bottom leaflet-left'>
+          </div>
+          <% end%>
+          <div id="map" class="sidebar-map"> </div>
+        </div>
+
+        <div class='hidden-sm col-md-4 right-container'>
+          <%=yield%>
+        </div>
+    </div>
+  </div>
+</body>
+
+<script src='https://api.mapbox.com/mapbox.js/v3.1.1/mapbox.js'></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.3.1/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.2.0/leaflet.markercluster-src.js"></script>
+
+<script src="/js/Leaflet.SelectAreaFeature.js"> </script>
+
+<script src="/assets/leaflet_easy-button/easy-button.js"></script>
+<!--
+<script src="/assets/leaflet-sidebar-v2/leaflet-sidebar.min.js"></script>
+<script src="/assets/leaflet_vector_markers/leaflet-vector-markers.js"></script>
+-->
+<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+
+<script>
+  var tab = '<%=@tab%>';
+  $('#navbar-links li > a').each(function(i) {
+    if($(this).text() == tab) {
+      $(this).parent().addClass('active');
+    }
+  });
+
+
+  //define a boundary box around SD to limit the map to
+  let bounds = new L.LatLngBounds(new L.LatLng(33.627056, -120.743720), new L.LatLng(32.426014, -113.3608));
+
+  //create layers
+  let mbAttr = 'Map data &copy; <a href="http://openstreetmap.org/copyright">OpenStreetMap</a> contributors, ' +
+               '<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+               'Imagery © <a href="https://www.mapbox.com/map-feedback/">Mapbox</a> ' +
+               '<a href="https://www.mapbox.com/map-feedback/">Improve map</a>';
+
+  mapboxAccessToken = 'pk.eyJ1IjoiYzZzYW5kZXIiLCJhIjoiY2l6ZWpmaHl3MXYwYTJ3cXBlaXBqeXJwcyJ9.QbYtu1dpRdbLFxfhOkqMmA';
+  let mbUrl = 'https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=' + mapboxAccessToken;
+
+  let grayscale = L.tileLayer(mbUrl, {id: 'mapbox.light', attribution: mbAttr}),
+      streets   = L.tileLayer(mbUrl, {id: 'mapbox.streets', attribution: mbAttr}),
+      //outdoor   = L.mapbox.styleLayer('mapbox://styles/c6sander/cj091amp300292spljn8k1051'),
+      openstreetmap = L.tileLayer("http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png");
+
+  let baseLayers = {
+    "Streets": streets,
+    "Grayscale": grayscale,
+    "Openstreetmap": openstreetmap,
+  };
+
+  let defaultBaseLayer = <%= @base_layer.nil?? 'streets' : @base_layer %>;
+  g_map = new L.Map("map", {
+        center: bounds.getCenter(), maxBounds: bounds,
+        maxBoundsViscosity: 1.0, zoom: 10, minZoom: 9, maxZoom: 20,
+        layers: [defaultBaseLayer]}
+  );
+  
+  g_map_control = L.control.layers(baseLayers).addTo(g_map);
+
+	var CHOROPLETH_STYLE = {
+		weight: 2,
+		opacity: 1,
+		color: 'white',
+		dashArray: '3',
+		fillOpacity: 0.7
+	};
+
+  var DEFAULT_ZIP_STYLE = {
+    weight: 1,
+    opacity: 1,
+    color: 'red',
+    dashArray: '3',
+    fillOpacity: 0.1,
+    fillColor: 'black'
+  };
+
+  layer_zips = new L.geoJson(null, DEFAULT_ZIP_STYLE);
+
+  var CHOROPLETH_CIRCLE_STYLE = {
+    radius: 0,
+    fillColor: "green",
+    fillOpacity: 0.0,
+    color: "green",
+    weight: 1,
+    opacity: 0,
+  };
+
+  //layer_choropleth = L.layerGroup();
+  choropleth_circles = {};
+
+  var g_selected_zips = new Set([]);
+  zips = [];
+  if(<%=@map_control['zip'].nil?? 'false' : 'true'%>) {
+    layer_zips.addTo(g_map);
+    //layer_choropleth.addTo(g_map);
+  }
+  g_map_control.addOverlay(layer_zips, "zip boundary");
+
+
+  var getCentroid = function (arr) { 
+      let coords = arr.reduce(function (x,y) {
+          return [x[0] + y[0]/arr.length, x[1] + y[1]/arr.length] 
+      }, [0,0]) 
+      return {lng: coords[0], lat: coords[1]};
+  }
+
+  $.ajax({
+    url: "/json/zips.geojson",
+    dataType: "json",
+    success: function(data) {
+      $(data.features).each(function(key, feature) {
+        feature.id = feature.properties.ZIP;
+        layer_zips.addData(feature);
+        zips.push(feature.id);
+      });
+      <%if @zip %>
+      g_selected_zips.add(layer_zips.getLayer(<%=@zip%>));
+      <%end%>
+
+      layer_zips.getLayers().forEach(function(layer) {
+        var zip = layer.feature.id;
+        var centroid = layer.getBounds().getCenter();
+        //var centroid = getCentroid(layer.feature.geometry.coordinates[0][0]);
+        var circle = L.circleMarker(centroid, CHOROPLETH_CIRCLE_STYLE).addTo(g_map);
+        circle.bringToFront();
+        choropleth_circles[zip] = circle;
+      });
+
+      if(g_need_choropleth == true &&  g_zip_stats != undefined) {
+        update_choropleth();
+      }
+    }
+  }).error(function() {});
+
+  layer_schools = new L.geoJSON(null, { });
+  layer_schools.addTo(g_map);
+  g_map_control.addOverlay(layer_schools, "school");
+  /*
+  $.ajax({
+    dataType: "json",
+    url: "/js/schools.geojson",
+    success: function(data) {
+      $(data.features).each(function(key, data) {
+        layer_schools.addData(data);//.bindPopup(data['properties']);
+      });
+      layer_schools.setStyle({
+        fillColor: 'green', fillOpacity: 1,
+        color: 'green', weight: 3});
+    }
+  }).error(function() {});
+  */
+
+  selectfeature = g_map.selectAreaFeature.disable();
+  selectfeature.options.color = '#663399' ;
+  selectfeature.options.weight = 3 ;
+
+  //let sidebar = L.control.sidebar('sidebar').addTo(g_map);
+  //sidebar.open('home');
+
+</script>
+
+<%= yield(:custom_script) if content_for?(:custom_script) %>
+
+</html>

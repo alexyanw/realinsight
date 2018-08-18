@@ -1,0 +1,11 @@
+ul.field-group {
+    list-style-type: none;
+}
+
+.field-group li span.value{
+    float: right;
+}
+
+#brief-fields {
+    margin: 0 20px 0 20px;
+}

@@ -1,0 +1,107 @@
+<!-- Nav tabs -->
+<div class="sidebar-tabs">
+	<ul role="tablist">
+		<li><a href="#info" role="tab"><i class="fa fa-question"></i></a></li>
+		<li><a href="#config" role="tab"><i class="fa fa-gear"></i></a></li>
+	</ul>
+</div>
+
+<!-- Tab panes -->
+<div class="sidebar-content">
+	<div class="sidebar-pane" id="info">
+		<h1 class="sidebar-header">
+			Usage
+			<span class="sidebar-close"><i class="fa fa-caret-left"></i></span>
+		</h1>
+
+		<div class="panel panel-card">
+			<legend>Choropleth(map)</legend>
+      <div>
+        <span> The choropleth shows statistics per zip on specific year(2017 by default). </span><br>
+        <span> Hover over any zip to see the various statistics on upper right corner board. </span><br>
+        <span> Use the <i class='fa fa-gear'></i> to select the statistics variables for the map. </span><br>
+        <span>Use slider in <i class='fa fa-gear'></i> to select the year.</span>
+        <ul>
+          <li>Choropleth map can embed at most 4 variables at same time. </li>
+          <li>The background color can encode just 1 variable <b>attribute1</b> with sequential colormap. </li>
+          <li>The background color can encode both <b>attribute1</b> and <b>attribute2</b> with bivariate sequential colormap. </li>
+          <li>Circle size can encode 3rd variable</li>
+          <li>Circle color can encode 4th variable</li>
+        </ul>
+      </div>
+		</div>
+
+		<div class="panel panel-card">
+			<legend>Trend charts(on right)</legend>
+      <div>
+        <ul>
+        <li>There're 3 customizable charts to show the historical trend on various statistics.</li>
+        <li>You can change the content for each chart by its dropdown select list</li>
+        <li>By default, the charts are showing statistics trend for county</li>
+        <li>Clicking zips on the map will select the zips for the charts.</li>
+        <li>Clicking selected zips on the map will deselect the zip from the charts.</li>
+        <li>NOTE: school statistics is only available for zips not for whole county.</li>
+        </ul>
+      </div>
+		</div>
+  </div> <!-- info -->
+
+	<div class="sidebar-pane" id="config">
+		<h1 class="sidebar-header">
+			choropleth control
+			<span class="sidebar-close"><i class="fa fa-caret-left"></i></span>
+		</h1>
+
+		<div class="panel panel-card">
+			<legend> year <span id='year'>2017</span></legend>
+			<div id="slider-year"></div>
+		</div>
+
+		<div class="panel panel-card">
+			<legend>background color </legend>
+			<fieldset>
+				<label for="choropleth_attribute0">attribute1</label>
+				<select name="choropleth_attribute0" id="choropleth_attribute0">
+					<% for attr in @attributes do %>
+						<% if attr == 'median_sqft_price'%>
+							<option selected='selected'><%=attr%></option>
+						<% else %>
+							<option><%=attr%></option>
+						<% end %>
+					<% end %>
+				</select>
+
+				<label for="choropleth_attribute1">attribute2</label>
+				<select name="choropleth_attribute1" id="choropleth_attribute1">
+					<option selected="selected"></option>
+					<% for attr in @attributes_multi do %>
+						<option><%=attr%></option>
+					<% end %>
+				</select>
+			</fieldset>
+		</div>
+
+		<div class="panel panel-card">
+			<legend>circle</legend>
+			<fieldset>
+				<label for="choropleth_attribute2">attribute for circle size</label>
+				<select name="choropleth_attribute2" id="choropleth_attribute2">
+					<option selected="selected"></option>
+					<% for attr in @attributes_multi do %>
+            <option><%=attr%></option>
+					<% end %>
+				</select>
+
+				<label for="choropleth_attribute3">attribute for circle color</label>
+				<select name="choropleth_attribute3" id="choropleth_attribute3">
+					<option selected="selected"></option>
+					<% for attr in @attributes_multi do %>
+						<option><%=attr%></option>
+					<% end %>
+				</select>
+			</fieldset>
+		</div>
+  </div> <!-- config -->
+
+</div>
+

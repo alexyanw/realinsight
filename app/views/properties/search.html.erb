@@ -1,0 +1,107 @@
+<div id='property-info' class="map panel panel-success">
+  <div class="panel-heading">Property Attributes</div>
+  <div class="panel-body">
+    <a href='' id='address'></a>
+    <div id='brief-fields' class='row'>
+      <ul id='property-brief-1' class="field-group col-sm-5"> </ul>
+      <ul class="col-sm-2"> </ul>
+      <ul id='property-brief-2' class="field-group col-sm-5"> </ul>
+    </div>
+    <a href='' id='estimation'></a>
+  </div>
+  <div id="grid_transactions" style="height:100px;"> </div>
+</div>
+
+<div id='property-list' class="map panel panel-success">
+  <div class="panel-heading">Property List</div>
+  <div id='grid_properties' style="height:300px;"></div>
+  <div id='grid_pager' style="width:100%;"></div>
+</div>
+
+<% content_for :custom_css do %>
+  <%= stylesheet_link_tag('property.css') %>
+<% end %>
+
+<% content_for :custom_script do %>
+<%= javascript_include_tag('gmap_school') %>
+<%= javascript_include_tag('search') %>
+<script>
+
+// FIXME: race condition - gmap initialize called before below func loaded
+function initMapCustom(pos) {
+  //layer_properties = new google.maps.Data();
+  //layer_properties.setMap(g_map);
+  layer_properties = new DataLayerClusterer({
+            "map": g_map,
+            "maxZoom": 15
+          });
+
+  layer_schools = new DataLayerClusterer({
+            "map": g_map,
+            "maxZoom": 15
+          });
+
+  setSchoolStyle();
+  g_arraySchoolPointers = []
+
+  g_infoControl = new MapControl(g_map, google.maps.ControlPosition.RIGHT_TOP, 'map-info-control');
+  updateInfoControl();
+
+  g_directionsService = new google.maps.DirectionsService();
+  g_directionsRenderers = [];
+
+  <%if @search_scope %>
+    var scope = '<%=@search_scope%>';
+    console.log(scope);
+		codeAddress(scope, locateAddress);
+  <%else%>
+    geoscope = geoDecode(pos, function(location){
+      queryScope(location.postal_code);
+    });
+  <%end%>
+  g_selectedProperty = null;
+  g_selectedSchool = null;
+}
+
+function update_property_transaction(property) {
+  var url = '/properties/' + property.pin + '/transactions';
+  $.ajax({
+    url: url,
+    type: 'GET',
+    dataType: 'json',
+    success: function(data) {
+      transDataView.beginUpdate();
+      transDataView.setItems(data, 'date');
+      transDataView.endUpdate();
+    },
+    error: function(jqXHR, textStatus, errorThrown ) {
+      console.log(url, jqXHR,errorThrown);
+    }
+  });
+}
+
+function update_property_map(data) {
+  layer_properties.clearLayers();
+  var marker_properties = data.map(x => L.marker([x.lat, x.lon], {data: x}).on('click', onClickHouse).bindPopup(x.new_address));
+  for(var i in marker_properties) {
+    layer_properties.addLayer(marker_properties[i]);
+  }
+  g_map.fitBounds(layer_properties.getBounds());
+}
+
+// events
+$("form.property-filter").submit(function(event) {
+  event.preventDefault();
+  //var url = $(this).attr('action');
+  var form_data = {};
+  $.each($(this).serializeArray(), function(i, field) {
+      form_data[field.name] = field.value;
+  });
+  queryScope(form_data);
+});
+
+// init
+$(function(){
+});
+</script>
+<% end %>

@@ -1,0 +1,220 @@
+<div id='property-search' class="map panel panel-success">
+  <div class="panel-heading">Search</div>
+  <div class='panel-body row'>
+    <%= form_with class: 'property-filter', method: 'get' do |form| %>
+      <div class='col-md-3'>
+        <label>sold begin</label>
+        <div class="input-group">
+          <%= form.text_field :start_date, class: 'form-control', value: "06/01/17"%>
+        </div>
+      </div>
+      <div class='col-md-3'>
+        <label>end</label>
+        <div class="input-group">
+          <%= form.text_field :end_date, class: 'form-control', value: "10/01/17"%>
+        </div>
+      </div>
+      <div class='col-md-6'>
+        <label>property</label>
+        <div class="input-group">
+          <%= form.text_field :scope, class: 'form-control', placeholder: "zip/address/pins" %>
+          <span class="input-group-btn">
+            <button class="btn btn-default" type="submit">Go!</button>
+          </span>
+        </div><!-- /input-group -->
+      </div>
+    <% end %>
+  </div>
+</div>
+<div id='property-info' class="map panel panel-success">
+  <div class="panel-heading">Property Attributes</div>
+  <div class="panel-body">
+    <a href='' id='address'></a>
+    <div id='brief-fields' class='row'>
+      <ul id='property-brief-1' class="field-group col-sm-5"> </ul>
+      <ul class="col-sm-2"> </ul>
+      <ul id='property-brief-2' class="field-group col-sm-5"> </ul>
+    </div>
+    <a href='' id='estimation'></a>
+  </div>
+  <div id="grid_transactions" style="height:100px;"> </div>
+</div>
+
+<div id='property-list' class="map panel panel-success">
+  <div class="panel-heading">Property List</div>
+  <div id='grid_properties' style="height:300px;"></div>
+  <div id='grid_pager' style="width:100%;"></div>
+</div>
+
+<% content_for :custom_css do %>
+  <%= stylesheet_link_tag('/assets/SlickGrid-2.3.16/slick.grid.css') %>
+  <%= stylesheet_link_tag('/assets/SlickGrid-2.3.16/controls/slick.pager.css') %>
+  <%= stylesheet_link_tag('slickhack.css') %>
+  <%= stylesheet_link_tag('property.css') %>
+<% end %>
+
+<% content_for :custom_script do %>
+  <%= javascript_include_tag('gmap_school') %>
+  <%= javascript_include_tag('properties') %>
+  <%= javascript_include_tag('search') %>
+  <script src="/assets/SlickGrid-2.3.16/lib/jquery.event.drag-2.3.0.js"></script>
+  <script src="/assets/SlickGrid-2.3.16/slick.core.js"></script>
+  <script src="/assets/SlickGrid-2.3.16/slick.formatters.js"></script>
+  <script src="/assets/SlickGrid-2.3.16/slick.grid.js"></script>
+  <script src="/assets/SlickGrid-2.3.16/slick.dataview.js"></script>
+  <script src="/assets/SlickGrid-2.3.16/controls/slick.pager.js"></script>
+
+<script>
+function initMapCustom(pos) {
+  layer_properties = new DataLayerClusterer({
+            "map": g_map,
+            "maxZoom": 15
+          });
+
+  layer_schools = new DataLayerClusterer({
+            "map": g_map,
+            "maxZoom": 15
+          });
+
+
+  setSchoolStyle();
+  g_arraySchoolPointers = []
+
+  g_infoControl = new MapControl(g_map, google.maps.ControlPosition.RIGHT_TOP, 'map-info-control');
+  updateInfoControl();
+
+  g_directionsService = new google.maps.DirectionsService();
+  g_directionsRenderers = [];
+
+  <%if @search_scope %>
+    var scope = '<%=@search_scope%>';
+    queryScope(scope);
+  <%else%>
+    geoscope = geoDecode(pos, function(location){
+      queryScope(location.postal_code);
+    });
+  <%end%>
+  g_selectedProperty = null;
+  g_selectedSchool = null;
+}
+
+
+function update_property_brief(property) {
+  $('#property-brief-1').empty();
+  $('#property-brief-2').empty();
+  if(typeof property == 'undefined') {
+    $('#address').text('');
+    transDataView.setItems([]);
+    return;
+  }
+  var fields = ['pin', 'year_built', 'land_use_subcode', 'sqft', 'num_bed', 'num_bath', 'pool', 'view', 'eval_land', 'eval_imps', 'lon', 'lat'];
+  for (var i in fields) {
+    var field = fields[i];
+    var li = "<li><span class='title'>" + field + "</span><span class='value'>" + property[field] + "</span></li>";
+    if(i < fields.length /2) {
+      $('#property-brief-1').append(li);
+    }else{
+      $('#property-brief-2').append(li);
+    }
+  }
+  var zillow_url = 'https://www.zillow.com/homes/' + property.new_address + '_rb';
+  $('#address').text(property.new_address).attr('href', zillow_url);
+  var est_url = '/estimation/query?pin=' + property.pin
+  $('#estimation').text('estimation for ' + property.pin).attr('href', est_url);
+
+  // retrieve transactions
+  update_property_transaction(property);
+}
+
+
+function update_property_transaction(property) {
+  var url = '/properties/' + property.pin + '/transactions';
+  $.ajax({
+    url: url,
+    type: 'GET',
+    dataType: 'json',
+    success: function(data) {
+      transDataView.beginUpdate();
+      transDataView.setItems(data, 'date');
+      transDataView.endUpdate();
+    },
+    error: function(jqXHR, textStatus, errorThrown ) {
+      console.log(url, jqXHR,errorThrown);
+    }
+  });
+}
+
+
+var property_columns = $.map(['pin', 'address', 'year_built', 'sqft'], function(val,i) { return {name:val, field:val, id:val}; });
+
+function update_property_list(data) {
+    propDataView.beginUpdate();
+    propDataView.setItems(data, 'pin');
+    propDataView.endUpdate();
+}
+
+$(function(){
+  propDataView = new Slick.Data.DataView();
+  var grid_options = {
+    forceFitColumns: true,
+    enableTextSelectionOnCells: true,
+    enableCellNavigation: true,
+    enableColumnReorder: false,
+    enableCellNavigation: true,
+    editable: true,
+  };
+
+  grid_properties = new Slick.Grid("#grid_properties", propDataView, property_columns, grid_options);
+  pager = new Slick.Controls.Pager(propDataView, grid_properties, $('#grid_pager'));
+  propDataView.setPagingOptions({pageSize: 25}); 
+
+  propDataView.onRowCountChanged.subscribe(function (e, args) {
+      grid_properties.updateRowCount();
+      grid_properties.render();
+  });
+  propDataView.onRowsChanged.subscribe(function (e, args) {
+      grid_properties.invalidateRows(args.rows);
+      grid_properties.render();
+  });
+
+  grid_properties.onMouseLeave.subscribe(function(e, args) {
+      //$("#boringLabel").text("NONE");
+  });
+
+  grid_properties.onMouseEnter.subscribe(function(e, args) {
+      var cell = args.grid.getCellFromEvent(e);
+      var item = propDataView.getItem(cell.row);
+  });
+  grid_properties.onClick.subscribe(function(e, args) {
+      var cell = args.grid.getCellFromEvent(e);
+      var item = propDataView.getItem(cell.row);
+      update_property_brief(item);
+  });
+
+  // transaction grid
+  transDataView = new Slick.Data.DataView();
+  var transaction_columns = $.map(['date', 'sold_price'], function(val,i) { return {name:val, field:val, id:val}; });
+  grid_transactions = new Slick.Grid("#grid_transactions", transDataView, transaction_columns, grid_options);
+
+  transDataView.onRowCountChanged.subscribe(function (e, args) {
+      grid_transactions.updateRowCount();
+      grid_transactions.render();
+  });
+  transDataView.onRowsChanged.subscribe(function (e, args) {
+      grid_transactions.invalidateRows(args.rows);
+      grid_transactions.render();
+  });
+});
+
+// events
+$("form.property-filter").submit(function(event) {
+  event.preventDefault();
+  //var url = $(this).attr('action');
+  var form_data = {};
+  $.each($(this).serializeArray(), function(i, field) {
+      form_data[field.name] = field.value;
+  });
+  query_selection(form_data);
+});
+</script>
+<% end %>

@@ -1,0 +1,107 @@
+/* public stylesheet       */
+#main-container {
+  font-size: 14px!important;
+}
+
+div.left {
+    float: left;
+}
+div.right {
+    float: right;
+}
+
+/* status_tag */
+span.status { display: block; width: 10px; height: 10px;
+  margin: 0.25em auto; padding: 0; border: 1px solid #000000; }
+span.status.true  { background: green; color: green; }
+span.status.false { background: red; color: red; }
+
+table.datagrid {
+  margin-top: 5px; 
+  width: 100%; 
+  /*table-layout: fixed;*/
+  border-spacing: 2px;
+  /*border-collapse: separate;*/
+}
+
+table.datagrid th{
+  /*text-align: center;*/
+  color: white;
+  border: 1px solid #fff;
+  /*cursor: pointer; */
+  /*background-image: url("../images/sortable.gif");*/
+  background-repeat: no-repeat;
+  background-position-x: 5px;
+  background-position-y: 2px;
+  background-position: 5px;
+  background-color: #0080e0;
+  font-family: sans-serif;
+  font-size: 90%;
+  /*font-style: italic;*/
+  white-space: nowrap;
+  background-size: 8px 10px;
+  word-wrap: break-word;
+}
+
+table.datagrid tr.odd { background: #DAE7FE; }
+
+table.datagrid tr.even { background: none; }
+
+table.datagrid tr:hover {
+   background-color: gold; 
+}
+
+table.datagrid td { 
+  /*word-wrap: break-word; */
+  overflow: hidden;
+  white-space: nowrap; 
+  text-overflow: ellipsis;
+  /*overflow: auto;*/
+  max-width: 200px;
+  border: 1px solid #eee;
+}
+
+table.datagrid td:hover{ 
+  word-wrap: break-word; 
+  overflow: auto;
+  text-overflow: initial;
+}
+
+table.datagrid td.bar { 
+  text-align: center;
+  padding-left: 10px;
+  padding-right: 10px;
+  max-width: 100px;
+}
+
+table.datagrid td.bar a,
+table.datagrid td.progress-bar{ 
+  color: black;
+}
+
+table.datagrid div.bar { 
+  display: block;
+  width: 100px;
+  height: 10px;
+  margin: 0.25em auto;
+  padding: 0;
+  border: 1px solid #000000;
+  float: left;
+}
+
+table.datagrid img.bar {
+  display: block;
+  height: 10px;
+  float: left;
+}
+
+.datagrid .progress {
+  height: 15px;
+  margin: 0 10px 0 10px;
+}
+
+table.datagrid td.select { 
+  text-align: center;
+}
+
+

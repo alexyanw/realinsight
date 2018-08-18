@@ -1,0 +1,16 @@
+<div class='row'>
+  <h3 style='display: flex; justify-content: center;'>Try the search button for any pin on upper right corner </h3>
+  <h3 style='display: flex; justify-content: center;'>Or from the estimation link on 'Search' page</h3>
+</div>
+
+<% content_for :custom_css do %>
+  <%= stylesheet_link_tag('estimation') %>
+<% end %>
+
+<% content_for :custom_script do %>
+  <%= javascript_include_tag('estimation') %>
+<script>
+var postings = JSON.parse('<%=@postings.to_json.html_safe%>');
+console.log(postings);
+</script>
+<% end %>

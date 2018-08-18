@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+
+  <head>
+    <title>Realestate Insight</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css">
+    <link href="http://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" type="text/css" media="all" />
+    <%= stylesheet_link_tag('application') %>
+    <%= stylesheet_link_tag('gmap') %>
+
+    <%= yield(:custom_css) if content_for?(:custom_css) %>
+
+  </head>
+
+  <body class='index-page'>
+
+  <%= render(:partial => 'layouts/nav') %>
+    <div id='main-container' class="container-fluid">
+        <div class='col-sm-12 col-md-8 left-container'>
+          <div id="sidebar" class="sidebar collapsed">
+          <%if not @map_control['sidebar'].nil?%>
+            <%= render(:partial => @map_control['sidebar'])%>
+          <%end%>
+          </div>
+
+          <div id="map" class="sidebar-map"> </div>
+        </div>
+
+        <div class='hidden-sm col-md-4 right-container'>
+          <%=yield%>
+        </div>
+      </div>
+    </div>
+
+<%= javascript_include_tag('application') %>
+<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+<script src="https://code.jquery.com/ui/1.12.0/jquery-ui.min.js" type="text/javascript"></script>
+<script src="https://www.google.com/jsapi"></script>
+<script src="https://www.gstatic.com/jsaction/contract.js"></script>
+<script src="https://www.gstatic.com/jsaction/dispatcher.js"></script>
+<script src="https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/markerclusterer.js"></script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCat5L7Jvs62BXVdezyIzW9FuJNGXVRPak&callback=initialize"></script>
+<!--
+<script src='https://cdn.rawgit.com/Connum/data-layer-clusterer/2ef00e0a1ad2839aa1de3144428cb1e35a736022/src/datalayerclusterer.js'></script>
+-->
+<script src='/js/datalayerclusterer.js'></script>
+
+<%= javascript_include_tag('gmap.js') %>
+<%= yield(:custom_script) if content_for?(:custom_script) %>
+
+  </body>
+</html>

@@ -1,0 +1,34 @@
+.ui-state-default.slick-header-column {
+    box-sizing: initial;
+}
+
+.slick-header-column.ui-state-default {
+    background:none ;
+    background-color: #ffffff ;
+    color: #505050;  
+    border: none;  
+}
+
+.slick-row.ui-widget-content, .slick-cell {
+    background: none;
+    border: none;
+    color: #505050;  
+    border-bottom: solid 1px #eeeeee;
+    font-size: 12px;
+}
+
+.slick-row:hover { background-color: yellow; }
+
+.slick-viewport {
+	overflow-x: hidden!important;
+}
+
+.slick-pager {
+    width: 100%;
+    height: 26px;
+    border: none;
+    border-top: solid 1px #eeeeee;
+    /* background: url(../images/header-columns-bg.gif) repeat-x center bottom; */
+    background: none;
+    vertical-align: middle;
+}
